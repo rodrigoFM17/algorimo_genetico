@@ -17,6 +17,7 @@ class Subject:
     def set_genome(self, new_genome):
         self.genome = new_genome
         self.int_genome = int(new_genome, 2)
+        self.eval_phenotype
     
     def __eq__(self, other):
         return self.genome == other.genome
