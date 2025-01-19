@@ -1,157 +1,223 @@
 import math
-from random import random, uniform, randint
-from Subject import Subject
-import tkinter as Tk
-from copy import deepcopy
-
-# libreria matplot
-
-def calculate_n(a, b, dx):
-    return int((b - a) / dx + 1)
-
-def calculate_n_bits(n):
-    return math.ceil(math.log2(n))
+import tkinter as tk
+from tkinter import messagebox
+from GeneticAlgorithm import GeneticAlgorithm
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 def evaluation(x):
     return 0.1 * x * math.log(1 + abs(x)) * math.cos(x) * math.cos(x)
 
-def calculate_dx(a, b, n_bits):
-    return (b - a)/ (2 ** n_bits - 1)
+def save_video():
+    return ""
 
-def binary_string_to_int(str):
-    return int(str, 2)
-
-def binary_string_to_bin(str):
-    return bin(binary_string_to_int(str))
-
-a = -20
-b = 50 
-dx = 0.05
-
-p_breeding = 0.7
-p_mutation = 0.5
-p_mutation_gen = 0.5
-regular_tolerancy = 0.01
-
-subjects = []
-descendants = []
-pairs = []
-generations = []
-
-sorted_subjects = []
-
-n = calculate_n(a, b, dx)
-n_bits = calculate_n_bits(n)
-dx = calculate_dx(a, b, n_bits)
-n = calculate_n(a, b, dx)
-
-def eval_subjects(a, dx):
-    if len(subjects) == 0:
-        for i in range(n):
-            subjects.append(Subject(bin(i), i, evaluation, a, dx))
-    else:
-        for subject in subjects:
-            subject.eval_phenotype()
-
-def make_pairs():
-    sorted_subjects = sorted(subjects, key=lambda subject: subject.phenotype, reverse=True)
-    for i in range(len(sorted_subjects)):
-        p = random()
-        if p <= p_breeding:
-            j = randint(0,i)
-            
-            pairs.append({
-                "i":i,
-                "j":j
-            })
-    return sorted_subjects
-
-def breeding(n_bits, sorted_subjects, operation, a, dx):
-    for pair in pairs:
-        l = randint(1, n_bits - 1)
-        genomes = {
-            "1":  sorted_subjects[pair["i"]].get_string_genome(n_bits),
-            "2": sorted_subjects[pair["j"]].get_string_genome(n_bits)
-        }
-        genomes_splitted = {
-            "a1": genomes["1"][:l],
-            "a2": genomes["1"][l:],
-            "b1": genomes["2"][:l],
-            "b2": genomes["2"][l:],
-        }
-        new_genomes = {
-            "1": genomes_splitted["a1"] + genomes_splitted["b2"],
-            "2": genomes_splitted["b1"] + genomes_splitted["a2"]
-        }
-        new_descendants = {
-            "1": Subject(binary_string_to_bin(new_genomes["1"]), binary_string_to_int(new_genomes["1"]), operation, a, dx ),
-            "2": Subject(binary_string_to_bin(new_genomes["2"]), binary_string_to_int(new_genomes["2"]), operation, a, dx )
-        }
-        descendants.append(new_descendants["1"])
-        descendants.append(new_descendants["2"])
-
-def mutation(n_bits):
-    for descendant in descendants:
-        p = random()
-        if p <= p_mutation:
-            genome_string = descendant.get_string_genome(n_bits)
-            for i in range(len(genome_string)):
-                if random() <= p_mutation_gen:
-                    char = str(randint(0,1))
-                    genome_string = genome_string[:i] + char + genome_string[i + 1:]
-            descendant.set_genome(binary_string_to_bin(genome_string))
+# def show_grafic(a, b, geneticAlgorithm):
+#     def func(x):
+#         return 0.1 * x * np.log(1 + np.abs(x)) * np.cos(x) * np.cos(x)
     
-    generations.append(deepcopy(descendants))
+#     x = np.linspace(a, b, 1000)
+#     y = func(x)
 
-def cute(subjects, descendants):                                            
-    subjects_combined = subjects + descendants
-    subjects_combined_no_repeated = list(set(subjects_combined))
-    subjects = subjects_combined_no_repeated
-    descendants = []
+#     i_min = np.argmin(y)
+#     i_max = np.argmax(y)
 
-def get_best_subjects(): 
-    best_subjects = []
-    for generation in generations:
-        best = max(generation, key=lambda subject: subject.phenotype)
-        best_subjects.append(best)
-    return best_subjects
+#     x_min, y_min = x[i_min], y[i_min]
+#     x_max, y_max = x[i_max], y[i_max]
 
-def get_worst_subjects():
-    worst_subjects = []
-    for generation in generations:
-        worst = min(generation, key=lambda subject: subject.phenotype)
-        worst_subjects.append(worst)
-    return worst_subjects
+#     figure, ax = plt.subplots()
 
-def get_regular_subjects(best, worst):
-    regular_point = (best.phenotype - worst.phenotype) / 2
-    regular_subjects = []
-    for generation in generations:
-        for subject in generation:
-            if subject.phenotype >= regular_point - regular_tolerancy and subject.phenotype <= regular_point + regular_tolerancy :
-                regular_subjects.append(subject)
-    return regular_subjects
+#     ax.plot(x, y, label="grafica de la funcion", color="blue")
 
 
-def summarize():
-    best_subjects = get_best_subjects()
-    worst_subjects = get_worst_subjects()
-    regular_subjects = get_regular_subjects(best_subjects[0], worst_subjects[0])
-    print("------------resumen------------")
-    print(f'''generaciones: {len(generations)}
-          mejores: {best_subjects}
-          peores: {worst_subjects}
-          regulares: {len(regular_subjects)}
-    ''')
+#     points = geneticAlgorithm.get_last_generation_points()
+#     ax.scatter(points["general"]["x"], points["general"]["y"], color="black", label="individuos",zorder=5, s=50)
 
-for i in range(10):
-    eval_subjects(a, dx)
-    sorted_subjects = make_pairs()
-    breeding(n_bits, sorted_subjects, evaluation, a, dx)
-    mutation(n_bits)
-    cute(subjects, descendants)
+#     ax.scatter([points["best"]["x"]], [points["best"]["y"]], color="green", label="mejor", zorder=10, s=50)
+#     ax.scatter([points["worst"]["x"]], [points["worst"]["y"]], color="red", label="peor", zorder=10, s=50)
+    
 
-summarize()
+#     ax.set_title("Grafica de la funcion")
+#     ax.set_xlabel("x")
+#     ax.set_ylabel("y")
+#     ax.axvline(0, color="black", linewidth=0.5) 
+#     ax.axhline(0, color="black", linewidth=0.5)  
+#     ax.grid(color="gray", linestyle="--", linewidth=0.5)
+#     ax.legend()
+
+#     canvas = FigureCanvasTkAgg(figure, master=app) 
+#     canvas.draw()
+
+#     canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+
+    # plt.plot(x, y, label=r"$0.1 \cdot x \cdot \ln(1 + |x|) \cdot \cos^2(x)$", color="blue")
+    # plt.scatter([x_min, x_max], [y_min, y_max], color="red", label="Mín/Máx", zorder=5)
+
+    # points = geneticAlgorithm.get_last_generation_points()
+    # plt.scatter(points["general"]["x"], points["general"]["y"], color="black", label="individuos",zorder=5, s=50)
+
+    # plt.scatter([points["best"]["x"]], [points["best"]["y"]], color="green", label="mejor", zorder=10, s=50)
+    # plt.scatter([points["worst"]["x"]], [points["worst"]["y"]], color="red", label="peor", zorder=10, s=50)
+
+    # plt.axhline(y=points["average_point"]["y"], color='blue', linestyle='--', linewidth=1)
+
+    # plt.title("Gráfica de la función")
+    # plt.xlabel("x")
+    # plt.ylabel("y")
+    # plt.axhline(0, color="black", linewidth=0.5)  
+    # plt.axvline(0, color="black", linewidth=0.5)  
+    # plt.grid(color="gray", linestyle="--", linewidth=0.5)
+    # plt.legend()
+    # plt.show()
 
 
+def start_AG():
+    continue_answer = True
+
+    a = input_a.get()
+    b = input_b.get()
+    dx = input_dx.get()
+    p_breed = input_p_breed.get()
+    p_mutation = input_p_mutation.get()
+    p_mutation_gen = input_p_mutation_gen.get()
+    average_tolerancy = input_average_tolerancy.get()
+
+    geneticAlgorithm = GeneticAlgorithm(
+            a,
+            b,
+            dx,
+            p_breed,
+            p_mutation,
+            p_mutation_gen,
+            evaluation,
+            average_tolerancy
+        )
+    
+    while continue_answer:
+        
+        geneticAlgorithm.start()
+        continue_answer = messagebox.askyesno(
+            "Alerta",
+            f"El mejor resultado obtenido es {geneticAlgorithm.best_subjects[len(geneticAlgorithm.best_subjects) - 1]}"
+            )
+    
+    show_grafic(float(a), float(b), geneticAlgorithm)
+    show_report(geneticAlgorithm)
+
+app = tk.Tk()
+app.title("Algoritmo Genetico")
+
+inputs = tk.Frame(app, width=600, height=600)
+inputs.grid(row=0, column=0, sticky="nsew", pady=30)
+
+results = tk.Frame(app, width=600, height=600)
+results.grid(row=0, column=1, sticky="nsew")
+
+def show_grafic(a, b, geneticAlgorithm):
+    def func(x):
+        return 0.1 * x * np.log(1 + np.abs(x)) * np.cos(x) * np.cos(x)
+    
+    x = np.linspace(a, b, 1000)
+    y = func(x)
+
+    i_min = np.argmin(y)
+    i_max = np.argmax(y)
+
+    x_min, y_min = x[i_min], y[i_min]
+    x_max, y_max = x[i_max], y[i_max]
+
+    figure, ax = plt.subplots()
+
+    ax.plot(x, y, label="grafica de la funcion", color="blue")
+
+
+    points = geneticAlgorithm.get_last_generation_points()
+    ax.scatter(points["general"]["x"], points["general"]["y"], color="black", label="individuos",zorder=5, s=50)
+
+    ax.scatter([points["best"]["x"]], [points["best"]["y"]], color="green", label="mejor", zorder=10, s=50)
+    ax.scatter([points["worst"]["x"]], [points["worst"]["y"]], color="red", label="peor", zorder=10, s=50)
+    ax.axhline(y=points["average_point"]["y"], color='blue', linestyle='--', linewidth=1)
+
+    
+
+    # Detalles del gráfico
+    ax.set_title("Grafica de la funcion")
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+    ax.axvline(0, color="black", linewidth=0.5) 
+    ax.axhline(0, color="black", linewidth=0.5)  
+    ax.grid(color="gray", linestyle="--", linewidth=0.5)
+    ax.legend()
+
+    canvas = FigureCanvasTkAgg(figure, master=results) 
+    canvas.draw()
+
+    canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+
+app.grid_rowconfigure(0, weight=1)
+app.grid_columnconfigure(0, weight=1)
+app.grid_columnconfigure(1, weight=2)
+
+label = tk.Label(inputs, text="Ingrese los parametros")
+label.pack()
+
+input_a_label = tk.Label(inputs, text="a: ")                                        
+input_a = tk.Entry(inputs)                   
+input_b_label = tk.Label(inputs, text="b: ")
+input_b = tk.Entry(inputs)                                                          
+input_dx_label = tk.Label(inputs, text="dx: ") 
+input_dx = tk.Entry(inputs)                                                          
+input_p_breed_label = tk.Label(inputs, text="probabilidad de cruza: ")                                                           
+input_p_breed = tk.Entry(inputs)
+input_p_mutation_label = tk.Label(inputs, text="probabilidad de mutacion del sujeto: ")                                                           
+input_p_mutation = tk.Entry(inputs)
+input_p_mutation_gen_label = tk.Label(inputs, text="probabilidad de mutacion del gen del sujeto: ")                                                           
+input_p_mutation_gen = tk.Entry(inputs)
+input_average_tolerancy_label = tk.Label(inputs, text="tolerancia para el promedio: ")                                                           
+input_average_tolerancy = tk.Entry(inputs)
+
+input_a_label.pack()
+input_a.pack()
+input_b_label.pack()
+input_b.pack()
+input_dx_label.pack()
+input_dx.pack()
+input_p_breed_label.pack()
+input_p_breed.pack()
+input_p_mutation_label.pack()
+input_p_mutation.pack()
+input_p_mutation_gen_label.pack()
+input_p_mutation_gen.pack()
+input_average_tolerancy_label.pack()
+input_average_tolerancy.pack()
+
+start_button = tk.Button(inputs, text="Iniciar", command=start_AG)
+start_button.pack()
+
+video_button = tk.Button(inputs, text="Guardar video", command=save_video)
+
+
+def show_report(geneticAlgorithm):
+    result_label = tk.Label(inputs, text="Reporte del mejor caso")
+    best_case = geneticAlgorithm.get_best_subject()
+    genome_label = tk.Label(inputs, text=f"cadena de bits: {best_case.get_string_genome(geneticAlgorithm.n_bits)}")
+    decimal_label = tk.Label(inputs, text=f"valor decimal: {best_case.int_genome}")
+    x_label = tk.Label(inputs, text=f"x*: {best_case.get_x()}")
+    phenotype_label = tk.Label(inputs, text=f"f(x*): {best_case.get_y()}")
+    delta_label = tk.Label(inputs, text=f"d*x: {geneticAlgorithm.dx}")
+
+    result_label.pack()
+    genome_label.pack()
+    decimal_label.pack()
+    x_label.pack()
+    phenotype_label.pack()
+    delta_label.pack()
+    video_button.pack()
+
+
+
+
+app.geometry("1200x600")
+
+app.mainloop()
 
